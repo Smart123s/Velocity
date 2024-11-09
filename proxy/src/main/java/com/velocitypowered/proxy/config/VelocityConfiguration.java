@@ -325,6 +325,11 @@ public class VelocityConfiguration implements ProxyConfig {
     return defaultForwardingMode;
   }
 
+  @Deprecated
+  public PlayerInfoForwarding getPlayerInfoForwardingMode() {
+    return defaultForwardingMode;
+  }
+
   public PlayerInfoForwarding getServerForwardingMode(String server) {
     return servers.getServerForwardingModes().getOrDefault(server, defaultForwardingMode);
   }
