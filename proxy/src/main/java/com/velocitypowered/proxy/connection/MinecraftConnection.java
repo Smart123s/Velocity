@@ -46,6 +46,7 @@ import com.velocitypowered.proxy.protocol.netty.MinecraftCompressDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftCompressorAndLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftEncoder;
+import com.velocitypowered.proxy.protocol.netty.MinecraftVarintFrameDecoder;
 import com.velocitypowered.proxy.protocol.netty.MinecraftVarintLengthEncoder;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueInboundHandler;
 import com.velocitypowered.proxy.protocol.netty.PlayPacketQueueOutboundHandler;
@@ -152,13 +153,13 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
 
       if (msg instanceof MinecraftPacket pkt) {
         if (!pkt.handle(activeSessionHandler)) {
-          activeSessionHandler.handleGeneric((MinecraftPacket) msg);
+          activeSessionHandler.handleGeneric(pkt);
         }
       } else if (msg instanceof HAProxyMessage proxyMessage) {
         this.remoteAddress = new InetSocketAddress(proxyMessage.sourceAddress(),
             proxyMessage.sourcePort());
-      } else if (msg instanceof ByteBuf) {
-        activeSessionHandler.handleUnknown((ByteBuf) msg);
+      } else if (msg instanceof ByteBuf buf) {
+        activeSessionHandler.handleUnknown(buf);
       }
     } finally {
       ReferenceCountUtil.release(msg);
@@ -368,6 +369,11 @@ public class MinecraftConnection extends ChannelInboundHandlerAdapter {
     ensureInEventLoop();
 
     this.state = state;
+    final MinecraftVarintFrameDecoder frameDecoder = this.channel.pipeline()
+        .get(MinecraftVarintFrameDecoder.class);
+    if (frameDecoder != null) {
+      frameDecoder.setState(state);
+    }
     // If the connection is LEGACY (<1.6), the decoder and encoder are not set.
     final MinecraftEncoder minecraftEncoder = this.channel.pipeline()
         .get(MinecraftEncoder.class);
