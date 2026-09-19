@@ -61,7 +61,6 @@ import com.velocitypowered.proxy.protocol.util.PluginMessageUtil;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import net.kyori.adventure.key.Key;
@@ -278,7 +277,6 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
           PluginMessageUtil.rewriteMinecraftBrand(packet, server.getVersion(),
               serverConn.getPlayer().getProtocolVersion()));
     } else {
-      byte[] bytes = ByteBufUtil.getBytes(packet.content());
       ChannelIdentifier id = this.server.getChannelRegistrar().getFromId(packet.getChannel());
 
       if (id == null) {
@@ -288,6 +286,7 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
       // Handling this stuff async means that we should probably pause
       // the connection while we toss this off into another pool
+      byte[] bytes = ByteBufUtil.getBytes(packet.content());
       this.serverConn.getConnection().setAutoReading(false);
       this.server.getEventManager()
           .fire(new PluginMessageEvent(serverConn, serverConn.getPlayer(), id, bytes))
@@ -377,8 +376,8 @@ public class ConfigSessionHandler implements MinecraftSessionHandler {
 
   @Override
   public void disconnected() {
-    resultFuture.completeExceptionally(
-        new IOException("Unexpectedly disconnected from remote server"));
+    resultFuture.complete(ConnectionRequestResults.forDisconnect(
+        ConnectionMessages.INTERNAL_SERVER_CONNECTION_ERROR, serverConn.getServer()));
   }
 
   @Override
